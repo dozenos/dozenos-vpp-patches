@@ -1,0 +1,28 @@
+From d1e5a33fccb599ebcfb7fba73e53fa87ea73083c Mon Sep 17 00:00:00 2001
+From: zdc <taras@dozenos.local>
+Date: Wed, 12 Feb 2025 12:29:57 +0200
+Subject: [PATCH] linux-cp: Added build dependency for XFRM
+
+Added `libnl-xfrm-3-200` to build dependencies to make build
+`linux-cp` with XFRM possible.
+
+(cherry picked from commit f65022c5ab5e739744e3c4b1ea0a76724f566f50)
+---
+ Makefile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Makefile b/Makefile
+index 593ea4e98..9c71ae9e6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -116,6 +116,7 @@ DEB_DEPENDS += tshark
+ DEB_DEPENDS += jq # for extracting test summary from .json report (hs-test)
+ DEB_DEPENDS += libiberty-dev
+ DEB_DEPENDS += nasm libnuma-dev # for make-ext-deps
++DEB_DEPENDS += libnl-xfrm-3-200 # for linux-cp XFRM extension
+ 
+ LIBFFI=libffi6 # works on all but 20.04 and debian-testing
+ ifeq ($(OS_VERSION_ID),24.04)
+-- 
+2.39.5
+
