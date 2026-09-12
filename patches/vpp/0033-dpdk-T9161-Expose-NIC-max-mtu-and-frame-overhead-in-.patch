@@ -1,0 +1,47 @@
+From 6ace7d9e6eef46a90f75ab631f0af9c89e5c2b82 Mon Sep 17 00:00:00 2001
+From: Nataliia Solomko <natalirs1985@gmail.com>
+Date: Tue, 8 Sep 2026 12:16:31 +0300
+Subject: [PATCH] dpdk: T9161: Expose NIC max mtu and frame overhead in show
+ hardware-interfaces
+
+'show hardware-interfaces' prints only 'max rx packet len'
+(rte_eth_dev_info.max_rx_pktlen, the maximum RX packet length), which is not
+the maximum settable MTU - the two differ on some drivers (e.g. VMware
+VMXNET3: max_mtu 9000 vs a max rx packet len of 16384). Print
+rte_eth_dev_info.max_mtu ('max mtu') and xd->driver_frame_overhead so the
+true per-NIC MTU limit is queryable (DozenOS uses it to reject an MTU the
+dataplane cannot honor, which would otherwise be silently capped while the
+kernel keeps the larger value).
+
+A max_mtu of UINT16_MAX is the PMD's "unknown/no limit" sentinel, which VPP
+itself distrusts (dpdk_set_max_frame_size guards on it), so render it as
+'unknown' rather than 65535 to avoid a consumer treating it as a real limit.
+---
+ src/plugins/dpdk/device/format.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/src/plugins/dpdk/device/format.c b/src/plugins/dpdk/device/format.c
+index f0199c929..dbc10ee22 100644
+--- a/src/plugins/dpdk/device/format.c
++++ b/src/plugins/dpdk/device/format.c
+@@ -496,6 +496,17 @@ format_dpdk_device (u8 * s, va_list * args)
+ 
+   s = format (s, "%Umax rx packet len: %d\n", format_white_space, indent + 2,
+ 	      di.max_rx_pktlen);
++#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
++  if (di.max_mtu == UINT16_MAX)
++    s = format (s, "%Umax mtu: unknown\n", format_white_space, indent + 2);
++  else
++    s = format (s, "%Umax mtu: %u\n", format_white_space, indent + 2,
++		di.max_mtu);
++  s = format (s, "%Udriver frame overhead: %u\n", format_white_space, indent + 2,
++	      xd->driver_frame_overhead);
++#else
++  s = format (s, "%Umax mtu: unknown\n", format_white_space, indent + 2);
++#endif
+   s = format (s, "%Upromiscuous: unicast %s all-multicast %s\n",
+ 	      format_white_space, indent + 2,
+ 	      rte_eth_promiscuous_get (xd->port_id) ? "on" : "off",
+-- 
+2.51.0
+
